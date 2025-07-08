@@ -1,6 +1,6 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { createServer } from 'http';
-import { v4 as uuidv4 } from 'uuid';
+import { WebSocketServer, WebSocket } from "ws";
+import { createServer } from "http";
+import { v4 as uuidv4 } from "uuid";
 
 interface User {
   id: string;
@@ -10,7 +10,16 @@ interface User {
 }
 
 interface Message {
-  type: 'join' | 'leave' | 'offer' | 'answer' | 'ice-candidate' | 'typing' | 'stop-typing' | 'user-list' | 'message';
+  type:
+    | "join"
+    | "leave"
+    | "offer"
+    | "answer"
+    | "ice-candidate"
+    | "typing"
+    | "stop-typing"
+    | "user-list"
+    | "message";
   userId?: string;
   username?: string;
   targetUserId?: string;
@@ -23,59 +32,63 @@ class SignalingServer {
   private wss: WebSocketServer;
 
   constructor() {
-    const server = createServer();
-    const port = process.env.PORT || 8080;
-    
+    const server = createServer((req, res) => {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("WebSocket signaling server is running");
+    });
+
+    const port = parseInt(process.env.PORT || "8080", 10);
+
     this.wss = new WebSocketServer({ server });
     this.setupWebSocket();
-    
+
     server.listen(port, () => {
       console.log(`Signaling server running on port ${port}`);
     });
   }
 
   private setupWebSocket() {
-    this.wss.on('connection', (ws: WebSocket) => {
-      console.log('New WebSocket connection');
+    this.wss.on("connection", (ws: WebSocket) => {
+      console.log("New WebSocket connection");
 
-      ws.on('message', (data: Buffer) => {
+      ws.on("message", (data: Buffer) => {
         try {
           const message: Message = JSON.parse(data.toString());
           this.handleMessage(ws, message);
         } catch (error) {
-          console.error('Error parsing message:', error);
+          console.error("Error parsing message:", error);
         }
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.handleDisconnect(ws);
       });
 
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
       });
     });
   }
 
   private handleMessage(ws: WebSocket, message: Message) {
     switch (message.type) {
-      case 'join':
+      case "join":
         this.handleJoin(ws, message);
         break;
-      case 'offer':
-      case 'answer':
-      case 'ice-candidate':
+      case "offer":
+      case "answer":
+      case "ice-candidate":
         this.handleWebRTCSignaling(message);
         break;
-      case 'typing':
-      case 'stop-typing':
+      case "typing":
+      case "stop-typing":
         this.handleTyping(message);
         break;
-      case 'message':
+      case "message":
         this.handleChatMessage(message);
         break;
       default:
-        console.log('Unknown message type:', message.type);
+        console.log("Unknown message type:", message.type);
     }
   }
 
@@ -83,23 +96,25 @@ class SignalingServer {
     const userId = uuidv4();
     const user: User = {
       id: userId,
-      username: message.username || 'Anonymous',
+      username: message.username || "Anonymous",
       ws,
-      isOnline: true
+      isOnline: true,
     };
 
     this.users.set(userId, user);
 
     // Send user ID back to client
-    ws.send(JSON.stringify({
-      type: 'joined',
-      userId,
-      username: user.username
-    }));
+    ws.send(
+      JSON.stringify({
+        type: "joined",
+        userId,
+        username: user.username,
+      })
+    );
 
     // Broadcast updated user list to all clients
     this.broadcastUserList();
-    
+
     console.log(`User ${user.username} joined with ID ${userId}`);
   }
 
@@ -123,17 +138,19 @@ class SignalingServer {
     // Broadcast message to all users
     this.users.forEach((user) => {
       if (user.ws.readyState === WebSocket.OPEN) {
-        user.ws.send(JSON.stringify({
-          ...message,
-          timestamp: Date.now()
-        }));
+        user.ws.send(
+          JSON.stringify({
+            ...message,
+            timestamp: Date.now(),
+          })
+        );
       }
     });
   }
 
   private handleDisconnect(ws: WebSocket) {
     let disconnectedUserId: string | null = null;
-    
+
     this.users.forEach((user, userId) => {
       if (user.ws === ws) {
         disconnectedUserId = userId;
@@ -148,15 +165,15 @@ class SignalingServer {
   }
 
   private broadcastUserList() {
-    const userList = Array.from(this.users.values()).map(user => ({
+    const userList = Array.from(this.users.values()).map((user) => ({
       id: user.id,
       username: user.username,
-      isOnline: user.isOnline
+      isOnline: user.isOnline,
     }));
 
     const message = JSON.stringify({
-      type: 'user-list',
-      users: userList
+      type: "user-list",
+      users: userList,
     });
 
     this.users.forEach((user) => {
