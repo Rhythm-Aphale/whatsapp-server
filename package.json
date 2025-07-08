@@ -1,0 +1,21 @@
+{
+  "name": "signaling-server",
+  "version": "1.0.0",
+  "description": "WebSocket signaling server for WebRTC chat app",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node server.ts"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.10",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.2.2",
+    "ts-node": "^10.9.1"
+  }
+}
